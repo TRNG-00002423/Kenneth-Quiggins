@@ -138,3 +138,71 @@ config = build_test_config(headless=True, timeout=60)
 assert config["browser"] == "chrome"  # default
 assert config["headless"] == True     # overridden
 assert config["timeout"] == 60       # overridden
+
+def analyze_results(*results):
+    """Analyze a list of test result dicts.
+
+    Args:
+        *results: test result dicts (from create_test_result)
+
+    Returns:
+        tuple of (passed_count, failed_count, pass_rate, avg_duration)
+    """
+    passed_count = 0
+    failed_count = 0
+    total_duration = 0
+
+    for result in results:
+        if result["status"] == "pass":
+            passed_count += 1
+        else:
+            failed_count += 1
+        
+        total_duration += result["duration_ms"]
+
+    total_test = len(results)
+
+    pass_rate = (passed_count / total_test) * 100
+    avg_duration = total_duration / total_test
+
+    return (
+        passed_count,
+        failed_count,
+        pass_rate,
+        avg_duration
+    )
+
+results = [
+    create_test_result("test_login", "pass", 1200),
+    create_test_result("test_search", "pass", 850),
+    create_test_result("test_checkout", "fail", 2300, "Timeout"),
+    create_test_result("test_profile", "pass", 450),
+]
+
+passed, failed, rate, avg = analyze_results(*results)
+assert passed == 3
+assert failed == 1
+assert rate == 75.0
+
+
+def generate_report(*results):
+    """Generate a formatted test report string.
+
+    Calls analyze_results() internally and formats the output.
+
+    Returns: formatted multi-line string
+    """
+    passed_count, failed_count, passed_rate, avg_duration = analyze_results(*results)
+
+    report = "=== TEST REPORT ===\n\n"
+
+    report += (
+        f"Passed: {passed_count}\n"
+        f"Failed: {failed_count}\n"
+        f"Pass Rate: {passed_rate}\n"
+        f"Average Duration: {format_duration(avg_duration)}"
+    )
+
+    return report
+
+print(generate_report(*results))
